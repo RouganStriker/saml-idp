@@ -99,6 +99,73 @@ function makeCertFileCoercer(type, description, helpText) {
   };
 }
 
+function parseSPMetadataFile(value) {
+  const filePath = resolveFilePath(value);
+
+  if (!filePath) {
+    throw new Error(
+      'Invalid file ' + value
+    );
+  }
+
+  const xmlFile = fs.readFileSync(filePath, 'utf-8');
+  const xmlDoc = new Parser().parseFromString(xmlFile).documentElement;
+  const spData = {
+    'entityID': null,
+    'signResponse': null,
+    'acsUrl': null,
+    'sloUrl': null,
+    'encryptionCert': null,
+  }
+
+  spData['entityID'] = xmlDoc.getAttribute('entityID')
+
+  const spDescriptor = xmlDoc.getElementsByTagName("md:SPSSODescriptor");
+
+  if (spDescriptor.length > 0) {
+    spData['signResponse'] = spDescriptor[0].getAttribute('WantAssertionsSigned');
+  }
+
+  // ACS Endpoint
+  const acsEndpoints = xmlDoc.getElementsByTagName("md:AssertionConsumerService");
+
+  for (let i = 0; i < acsEndpoints.length; i++) {
+    const binding = acsEndpoints[i].getAttribute('Binding');
+
+    if (binding === "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST") {
+      spData['acsUrl'] = acsEndpoints[i].getAttribute('Location')
+      break;
+    }
+  }
+
+  // SLO Endpoint
+  const sloEndpoints = xmlDoc.getElementsByTagName("md:SingleLogoutService");
+
+  for (let i = 0; i < sloEndpoints.length; i++) {
+    const binding = sloEndpoints[i].getAttribute('Binding');
+
+    if (binding === "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST") {
+      spData['sloUrl'] = sloEndpoints[i].getAttribute('Location');
+      break;
+    }
+  }
+
+  // Public Keys
+  const publicKeys = xmlDoc.getElementsByTagName("md:KeyDescriptor");
+
+  for (let i = 0; i < publicKeys.length; i++) {
+    const type = publicKeys[i].getAttribute('use');
+
+    if (type === "encryption") {
+      spData['encryptionCert'] =  publicKeys[i].getElementsByTagName('ds:X509Certificate')[0].textContent;
+      break;
+    }
+  }
+
+  return spData;
+}
+
+
 function getHashCode(str) {
   var hash = 0;
   if (str.length == 0) return hash;
@@ -156,9 +223,14 @@ function processArgs(args, options) {
         alias: 'iss',
         default: 'urn:example:idp'
       },
+      spMetadata: {
+        description: 'SP Metadata File',
+        required: false,
+        coerce: parseSPMetadataFile,
+      },
       acsUrl: {
         description: 'SP Assertion Consumer URL',
-        required: true,
+        required: false,
         alias: 'acs'
       },
       sloUrl: {
@@ -168,7 +240,7 @@ function processArgs(args, options) {
       },
       audience: {
         description: 'SP Audience URI',
-        required: true,
+        required: false,
         alias: 'aud'
       },
       serviceProviderId: {
@@ -270,6 +342,29 @@ function processArgs(args, options) {
     })
     .example('\t$0 --acs http://acme.okta.com/auth/saml20/exampleidp --aud https://www.okta.com/saml2/service-provider/spf5aFRRXFGIMAYXQPNV', '')
     .check(function(argv, aliases) {
+      // Populate from SPMetadata
+      if (argv.spMetadata) {
+        if (argv.spMetadata.entityID !== null) {
+          argv.audience = argv.spMetadata.entityID;
+          argv.serviceProviderId = argv.spMetadata.entityID;
+        }
+        if (argv.spMetadata.signResponse !== null) {
+          argv.signResponse = argv.spMetadata.signResponse;
+        }
+        if (argv.spMetadata.acsUrl !== null) {
+          argv.acsUrl = argv.spMetadata.acsUrl;
+        }
+        if (argv.spMetadata.sloUrl !== null) {
+          argv.sloUrl = argv.spMetadata.sloUrl;
+        }
+        if (argv.spMetadata.encryptionCert !== null) {
+          argv.encryptionPublicKey = argv.spMetadata.encryptionCert;
+          argv.encryptionPublicKey = argv.spMetadata.encryptionCert;
+        }
+      }
+      return true;
+    })
+    .check(function(argv, aliases) {
       if (argv.encryptAssertion) {
         if (argv.encryptionPublicKey === undefined) {
           return 'encryptionPublicKey argument is also required for assertion encryption';
@@ -294,6 +389,13 @@ function processArgs(args, options) {
       } catch (error) {
         return 'Encountered an exception while loading SAML attribute config file "' + configFilePath + '".\n' + error;
       }
+      return true;
+    })
+    .check(function(argv, aliases) {
+      if (argv.acsUrl === undefined && audience === undefined) {
+          return 'acsUrl and audience are required if no metadata file is specified.';
+      }
+
       return true;
     })
     .wrap(baseArgv.terminalWidth());
@@ -543,6 +645,7 @@ function _runServer(argv) {
     return samlp.logout({
       cert:                   req.idp.options.cert,
       key:                    req.idp.options.key,
+      issuer:                 req.idp.options.issuer,
       digestAlgorithm:        req.idp.options.digestAlgorithm,
       signatureAlgorithm:     req.idp.options.signatureAlgorithm,
       sessionParticipants:    new SessionParticipants(
