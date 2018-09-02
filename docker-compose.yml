@@ -8,4 +8,8 @@ services:
      expose:
         - "7000"
      environment:
-        - APP_PARAMS=--acsUrl http://localhost:3000/sso/saml2/acs/ --audience http://localhost:3000/sso/saml2/metadata/ --sloUrl http://localhost:3000/sso/saml2/ls/post/
+        - SP_HOST=${HOST}
+        - SP_ENTITY_ID=${ENTITY_ID}
+        - SP_ACS_POST_PATH=${ACS_POST_PATH}
+        - SP_LS_POST_PATH=${LS_POST_PATH}
+        - IDP_SIGN_RESPONSE=${SIGN_RESPONSE}

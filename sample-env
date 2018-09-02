@@ -1,0 +1,9 @@
+# Rename as .env and configure as needed
+
+# Local Dev
+HOST=http://localhost:3000
+ENTITY_ID=http://localhost:3000/sso/saml2/metadata/
+
+ACS_POST_PATH=/sso/saml2/acs/
+LS_POST_PATH=/sso/saml2/ls/post/
+
