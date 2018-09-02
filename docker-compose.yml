@@ -1,5 +1,11 @@
-saml-idp:
-   build: .
-   ports:
-    - "7000:7000"
-   net: "host"
+version: '3'
+services:
+  saml-idp:
+     build:
+        context: .
+     ports:
+        - "127.0.0.1:7000:7000"
+     expose:
+        - "7000"
+     environment:
+        - APP_PARAMS=--acsUrl http://localhost:3000/sso/saml2/acs/ --audience http://localhost:3000/sso/saml2/metadata/ --sloUrl http://localhost:3000/sso/saml2/ls/post/
