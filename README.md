@@ -33,7 +33,11 @@ npm install saml-idp
 1. docker-compose build
 2. docker-compose up
 
-Simply modify Dockerfile to specify your own parameters.
+Copy the `sample-env` file to `.env` and configure it accordingly.
+
+#### MacOSX
+Ensure you are running a version of Docker >= 18.06.0-ce-mac70 to avoid time drift issues.
+
 
 ## Generating IdP Signing Certificate
 
