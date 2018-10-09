@@ -35,6 +35,28 @@ npm install saml-idp
 
 Copy the `sample-env` file to `.env` and configure it accordingly.
 
+#### Docker Environment Variables
+##### HOST
+Specify the service provider hostname. For use in constructing ACS and LS endpoints.
+e.g. http://localhost:3000
+
+###### ENTITY_ID
+Service Provider Entity ID
+e.g. http://localhost:3000/sso/saml2/metadata/
+
+###### ACS_POST_PATH
+Base path for service provider assertion consumer service URL.
+e.g. /sso/saml2/acs/
+
+###### LS_POST_PATH
+Base path for service provider single logout service URL.
+e.g. /sso/saml2/ls/post/
+
+###### SP_METADATA_URL
+Will reach out and download remote service provider metadata file at the specified URL.
+Configuration details will be take from metadata file, all other variables are ignored.
+e.g. http://localhost:3000/sso/saml2/metadata/
+
 #### MacOSX
 Ensure you are running a version of Docker >= 18.06.0-ce-mac70 to avoid time drift issues.
 
