@@ -21,6 +21,7 @@ const express             = require('express'),
       Parser              = require('xmldom').DOMParser,
       SessionParticipants = require('samlp/lib/sessionParticipants'),
       SimpleProfileMapper = require('./lib/simpleProfileMapper.js');
+      forge               = require('node-forge');
 
 /**
  * Globals
@@ -99,6 +100,7 @@ function makeCertFileCoercer(type, description, helpText) {
   };
 }
 
+
 function parseSPMetadataFile(value) {
   const filePath = resolveFilePath(value);
 
@@ -120,14 +122,14 @@ function parseSPMetadataFile(value) {
 
   spData['entityID'] = xmlDoc.getAttribute('entityID')
 
-  const spDescriptor = xmlDoc.getElementsByTagName("md:SPSSODescriptor");
+  const spDescriptor = xmlDoc.getElementsByTagNameNS("*", "SPSSODescriptor");
 
   if (spDescriptor.length > 0) {
     spData['signResponse'] = spDescriptor[0].getAttribute('WantAssertionsSigned');
   }
 
   // ACS Endpoint
-  const acsEndpoints = xmlDoc.getElementsByTagName("md:AssertionConsumerService");
+  const acsEndpoints = xmlDoc.getElementsByTagNameNS("*", "AssertionConsumerService");
 
   for (let i = 0; i < acsEndpoints.length; i++) {
     const binding = acsEndpoints[i].getAttribute('Binding');
@@ -139,7 +141,7 @@ function parseSPMetadataFile(value) {
   }
 
   // SLO Endpoint
-  const sloEndpoints = xmlDoc.getElementsByTagName("md:SingleLogoutService");
+  const sloEndpoints = xmlDoc.getElementsByTagNameNS("*", "SingleLogoutService");
 
   for (let i = 0; i < sloEndpoints.length; i++) {
     const binding = sloEndpoints[i].getAttribute('Binding');
@@ -151,13 +153,19 @@ function parseSPMetadataFile(value) {
   }
 
   // Public Keys
-  const publicKeys = xmlDoc.getElementsByTagName("md:KeyDescriptor");
+  const publicKeys = xmlDoc.getElementsByTagNameNS("*", "KeyDescriptor");
 
   for (let i = 0; i < publicKeys.length; i++) {
     const type = publicKeys[i].getAttribute('use');
 
     if (type === "encryption") {
-      spData['encryptionCert'] =  publicKeys[i].getElementsByTagName('ds:X509Certificate')[0].textContent;
+      const x509cert = publicKeys[i].getElementsByTagNameNS("*", "X509Certificate")[0].textContent;
+      const publicCert = '-----BEGIN CERTIFICATE-----\n' + x509cert + '-----END CERTIFICATE-----\n';
+      const forgeCert = forge.pki.certificateFromPem(publicCert);
+      const publicKey = forge.pki.publicKeyToPem(forgeCert.publicKey)
+
+      spData['encryptionPubKey'] = bufferFromString(publicKey);
+      spData['encryptionCert'] = bufferFromString(publicCert);
       break;
     }
   }
@@ -358,8 +366,9 @@ function processArgs(args, options) {
           argv.sloUrl = argv.spMetadata.sloUrl;
         }
         if (argv.spMetadata.encryptionCert !== null) {
-          argv.encryptionPublicKey = argv.spMetadata.encryptionCert;
-          argv.encryptionPublicKey = argv.spMetadata.encryptionCert;
+          argv.encryptionAssertion = true;
+          argv.encryptionCert = argv.spMetadata.encryptionCert;
+          argv.encryptionPublicKey = argv.spMetadata.encryptionPubKey;
         }
       }
       return true;
@@ -489,7 +498,7 @@ function _runServer(argv) {
                                 if (declDoc) {
                                   const authnContextDeclEl = assertionDom.createElementNS('urn:oasis:names:tc:SAML:2.0:assertion', 'saml:AuthnContextDecl');
                                   authnContextDeclEl.appendChild(declDoc.documentElement);
-                                  const authnContextEl = assertionDom.getElementsByTagName('saml:AuthnContext')[0];
+                                  const authnContextEl = assertionDom.getElementsByTagNameNS('saml:AuthnContext')[0];
                                   authnContextEl.appendChild(authnContextDeclEl);
                                 }
                               }
@@ -723,11 +732,11 @@ function _runServer(argv) {
     // Keep calm and Single Sign On
     console.log('Sending SAML Response\nUser => \n%s\nOptions => \n',
       JSON.stringify(req.user, null, 2), authOptions);
-    samlp.auth(authOptions)(req, res);
+    samlp.auth(authOptions)(req, res, console.log);
   })
 
   app.get(IDP_PATHS.METADATA, function(req, res, next) {
-    samlp.metadata(req.idp.options)(req, res);
+    samlp.metadata(req.idp.options)(req, res, next);
   });
 
   app.post(IDP_PATHS.METADATA, function(req, res, next) {

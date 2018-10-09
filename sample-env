@@ -7,3 +7,7 @@ ENTITY_ID=http://localhost:3000/sso/saml2/metadata/
 ACS_POST_PATH=/sso/saml2/acs/
 LS_POST_PATH=/sso/saml2/ls/post/
 
+# SP Metadata URL
+# If specified, download and parse the metadata from the URL
+# and override all other settings.
+# SP_METADATA_URL=http://localhost:3000/sso/saml2/metadata/

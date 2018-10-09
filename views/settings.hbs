@@ -50,6 +50,18 @@
         </div>
 
         <div class="form-group">
+          <label for="encryptAssertion" class="col-sm-3 control-label">Encrypt Assertion</label>
+          <div class="col-sm-9">
+            <select id="encryptAssertion" class="form-control" name="encryptAssertion">
+              {{#select idp.encryptAssertion}}
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+              {{/select}}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
           <label for="lifetimeInSeconds" class="col-sm-3 control-label control-label-break">Assertion Lifetime Seconds</label>
           <div class="col-sm-9">
             <input id="lifetimeInSeconds" class="form-control" name="lifetimeInSeconds" type="number" required="" value="{{idp.lifetimeInSeconds}}">
@@ -158,6 +170,13 @@
           <label for="relayState" class="col-sm-3 control-label">Default Relay State</label>
           <div class="col-sm-9">
             <input id="relayState" class="form-control" name="RelayState" type="text" value="{{idp.RelayState}}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="encryptionCert" class="col-sm-3 control-label">Encryption Certificate</label>
+          <div class="col-sm-9">
+            <textarea id="encryptionCert" rows="8" class="form-control" name="encryptionCert">{{idp.encryptionCert}}</textarea>
           </div>
         </div>
 
