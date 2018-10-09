@@ -55,6 +55,9 @@ e.g. /sso/saml2/ls/post/
 ###### SP_METADATA_URL
 Will reach out and download remote service provider metadata file at the specified URL.
 Configuration details will be take from metadata file, all other variables are ignored.
+
+Metadata file parsing will automatically set the service provider entity ID, audience URL, assertion consumer service URL, logout service URL, response signing, and assertion encryption configurations.
+
 e.g. http://localhost:3000/sso/saml2/metadata/
 
 #### MacOSX
