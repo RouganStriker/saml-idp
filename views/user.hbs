@@ -234,7 +234,7 @@
 <script>
 $(document).ready(function() {
    $("#nameIdFormat option").filter(function() {
-       return $(this).text() == '{{user.nameIdFormat}}';
+       return $(this).text().trim() == '{{user.nameIdFormat}}';
    }).prop('selected', true);
 
    $('#btn-show-attribute-modal').click(function(e) {

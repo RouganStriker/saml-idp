@@ -3,7 +3,7 @@
  * User Profile
  */
 var profile = {
-  nameIdFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+  nameIdFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
   firstname: 'Saml',
   lastname: 'Jackson',
   email: 'saml.jackson@example.com',
