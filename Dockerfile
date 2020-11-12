@@ -1,4 +1,4 @@
-FROM node:latest 
+FROM node:10
 
 ADD ./package.json package.json
 RUN npm install -g bower
